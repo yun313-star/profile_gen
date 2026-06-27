@@ -38,3 +38,6 @@ Thumbs.db
 *.log
 .idea/
 .vscode/
+
+# Superpowers SDD scratch
+.superpowers/
