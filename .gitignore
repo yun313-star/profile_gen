@@ -1,0 +1,40 @@
+# 의존성
+node_modules/
+.pnp
+.pnp.js
+
+# 빌드 산출물
+.next/
+out/
+build/
+dist/
+
+# 환경변수 / 비밀 (절대 커밋 금지)
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*credentials*
+*secret*
+
+# Supabase 로컬
+.branches
+.temp
+supabase/.temp/
+
+# Vercel
+.vercel
+
+# Claude Code 로컬 산출물
+.claude/.credentials.json
+.claude/history.jsonl
+.claude/sessions/
+.claude/telemetry/
+
+# OS / 에디터
+.DS_Store
+Thumbs.db
+*.log
+.idea/
+.vscode/
