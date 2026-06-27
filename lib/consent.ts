@@ -24,9 +24,9 @@ export const CONSENT_LABELS: Record<ConsentType, { title: string; required: bool
   marketing: { title: "[선택] 마케팅 정보 수신 동의", required: false },
 };
 
-/** Returns the distinct consent types the user has already agreed to. */
+/** Returns the distinct consent types the user has already agreed to (filters by current CONSENT_VERSION only). */
 export async function getUserConsents(sb: SupabaseClient, userId: string): Promise<ConsentType[]> {
-  const { data, error } = await sb.from("consents").select("type").eq("user_id", userId);
+  const { data, error } = await sb.from("consents").select("type").eq("user_id", userId).eq("version", CONSENT_VERSION);
   if (error) throw new Error(`getUserConsents: ${error.message}`);
   const set = new Set<ConsentType>();
   for (const row of (data ?? []) as { type: ConsentType }[]) set.add(row.type);

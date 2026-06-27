@@ -21,11 +21,20 @@ it("hasRequiredConsents true only when all four present", () => {
   expect(hasRequiredConsents([])).toBe(false);
 });
 
+it("hasRequiredConsents false when tos is missing", () => {
+  expect(hasRequiredConsents(["privacy", "sensitive_face", "own_face"])).toBe(false);
+});
+
 it("getUserConsents returns distinct consent types for the user", async () => {
-  const select = vi.fn(() => ({ eq: vi.fn(async () => ({ data: [{ type: "tos" }, { type: "tos" }, { type: "privacy" }], error: null })) }));
+  const eq1 = vi.fn(() => ({ eq: eq2 }));
+  const eq2 = vi.fn(async () => ({ data: [{ type: "tos" }, { type: "tos" }, { type: "privacy" }], error: null }));
+  const select = vi.fn(() => ({ eq: eq1 }));
   const sb = { from: vi.fn(() => ({ select })) } as unknown as SupabaseClient;
   const out = await getUserConsents(sb, "u1");
   expect(out.sort()).toEqual(["privacy", "tos"]);
+  // Verify version filter was applied
+  expect(eq1).toHaveBeenCalledWith("user_id", "u1");
+  expect(eq2).toHaveBeenCalledWith("version", CONSENT_VERSION);
 });
 
 it("recordConsents inserts one row per type with version + ip", async () => {
