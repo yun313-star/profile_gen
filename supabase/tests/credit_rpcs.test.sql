@@ -1,10 +1,13 @@
 begin;
 select plan(13);
 
+-- Inserting auth user fires handle_new_user() trigger which creates profile with credit_balance=3.
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-0000000000c1', 'c1@test.dev');
+-- Trigger already set credit_balance=3 via grant_credits; explicit insert is now a no-op.
 insert into public.profiles (id, credit_balance) values
-  ('00000000-0000-0000-0000-0000000000c1', 3);
+  ('00000000-0000-0000-0000-0000000000c1', 3)
+  on conflict (id) do nothing;
 
 -- debit 1 credit
 select lives_ok(

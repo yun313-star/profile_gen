@@ -2,15 +2,16 @@ begin;
 select plan(6);
 
 -- Seed two auth users + profiles directly (service context inside test).
+-- Inserting auth users fires handle_new_user() trigger which creates profiles + signup_bonus ledger rows.
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-00000000000a', 'a@test.dev'),
   ('00000000-0000-0000-0000-00000000000b', 'b@test.dev');
-insert into public.profiles (id, credit_balance) values
-  ('00000000-0000-0000-0000-00000000000a', 5),
-  ('00000000-0000-0000-0000-00000000000b', 5);
-insert into public.credit_ledger (user_id, delta, reason) values
-  ('00000000-0000-0000-0000-00000000000a', 5, 'signup_bonus'),
-  ('00000000-0000-0000-0000-00000000000b', 5, 'signup_bonus');
+-- Trigger sets credit_balance=3 via grant_credits; bump to 5 for the balance assertion below.
+update public.profiles set credit_balance = 5 where id in (
+  '00000000-0000-0000-0000-00000000000a',
+  '00000000-0000-0000-0000-00000000000b'
+);
+-- Trigger already inserted 1 signup_bonus ledger row per user; no extra inserts needed.
 
 -- Act as user A.
 set local role authenticated;
