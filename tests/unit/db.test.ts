@@ -72,6 +72,32 @@ it("markOrderRefundedIfPaid returns boolean from PAID->REFUNDED transition", asy
   expect(await markOrderRefundedIfPaid(sb, "o1")).toBe(true);
 });
 
+it("markOrderRefundedIfPaid returns false when no row transitioned", async () => {
+  const { sb } = fakeSb({ data: null, error: null });
+  const ok = await markOrderRefundedIfPaid(sb, "o1");
+  expect(ok).toBe(false);
+});
+
+it("updateOrder updates order and resolves without error", async () => {
+  const { sb, builder } = fakeSb({ data: null, error: null });
+  await updateOrder(sb, "o1", { status: "REFUNDED" });
+  expect(builder.update).toHaveBeenCalledWith({ status: "REFUNDED" });
+  expect(builder.eq).toHaveBeenCalledWith("id", "o1");
+});
+
+it("getJob returns the row when found", async () => {
+  const job = { id: "j1", status: "pending" };
+  const { sb } = fakeSb({ data: job, error: null });
+  const result = await getJob(sb, "j1");
+  expect(result).toEqual(job);
+});
+
+it("getJob returns null when not found", async () => {
+  const { sb } = fakeSb({ data: null, error: null });
+  const result = await getJob(sb, "missing");
+  expect(result).toBeNull();
+});
+
 it("insertJobs inserts an array and returns rows", async () => {
   const rows = [{ id: "j1" }];
   const { sb, from, builder } = fakeSb({ data: rows, error: null });

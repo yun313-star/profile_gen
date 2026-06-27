@@ -83,7 +83,8 @@ export async function markOrderRefundedIfPaid(sb: SupabaseClient, id: string): P
 export async function insertJobs(sb: SupabaseClient, jobs: NewJob[]): Promise<GenerationJob[]> {
   const res = await sb.from("generation_jobs").insert(jobs).select();
   if (res.error) throw new Error(`insertJobs: ${res.error.message}`);
-  return (res.data as GenerationJob[]) ?? [];
+  if (res.data == null) throw new Error(`insertJobs: no rows returned`);
+  return res.data as GenerationJob[];
 }
 
 export async function getJob(sb: SupabaseClient, id: string): Promise<GenerationJob | null> {
