@@ -1,9 +1,11 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+const PROTECTED_PREFIXES = ["/create", "/gallery", "/credits", "/account", "/onboarding"];
+
 /**
- * Refreshes the Supabase auth session and propagates updated cookies.
- * Returns a NextResponse the middleware must return (or copy cookies from).
+ * Refreshes the Supabase auth session, propagates updated cookies, and
+ * redirects unauthenticated users away from protected routes.
  */
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -29,8 +31,16 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  // IMPORTANT: getClaims revalidates the JWT and triggers cookie refresh.
-  await supabase.auth.getClaims();
+  const { data } = await supabase.auth.getClaims();
+  const path = request.nextUrl.pathname;
+  const isProtected = PROTECTED_PREFIXES.some((p) => path === p || path.startsWith(p + "/"));
+
+  if (isProtected && !data?.claims) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.searchParams.set("next", path);
+    return NextResponse.redirect(url);
+  }
 
   return response;
 }
