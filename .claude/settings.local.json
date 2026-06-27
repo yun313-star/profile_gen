@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"const l=require\\('./package-lock.json'\\); const pk=l.packages||{}; for\\(const d of ['node_modules/next','node_modules/@supabase/ssr','node_modules/server-only','node_modules/vitest']\\) console.log\\(d, pk[d]?\\('v'+pk[d].version\\):'MISSING'\\)\")",
+      "Bash(npx vitest *)"
+    ]
+  }
+}
