@@ -1,5 +1,5 @@
 begin;
-select plan(6);
+select plan(8);
 
 -- Seed two auth users + profiles directly (service context inside test).
 -- Inserting auth users fires handle_new_user() trigger which creates profiles + signup_bonus ledger rows.
@@ -40,6 +40,24 @@ select throws_ok(
   '42501',
   'permission denied for table credit_ledger',
   'ledger: direct client insert is denied by privilege layer'
+);
+
+-- A direct consents INSERT by an authenticated user must be blocked (0005 revoked INSERT privilege).
+select throws_ok(
+  $$ insert into public.consents (user_id, type, version)
+     values ('00000000-0000-0000-0000-00000000000a', 'tos', '2026-06-27') $$,
+  '42501',
+  'permission denied for table consents',
+  'consents: direct client INSERT is denied by privilege layer (server-authoritative)'
+);
+
+-- A direct UPDATE of age_verified by an authenticated user must be blocked (0005 revoked column privilege).
+select throws_ok(
+  $$ update public.profiles set age_verified = true
+     where id = '00000000-0000-0000-0000-00000000000a' $$,
+  '42501',
+  null,
+  'profiles: authenticated client cannot directly SET age_verified (server-authoritative)'
 );
 
 -- A cannot select B's order.

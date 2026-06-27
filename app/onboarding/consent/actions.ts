@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createServerSupabase } from "@/lib/supabase/server";
+import { createServiceSupabase } from "@/lib/supabase/service";
 import {
   recordConsents,
   hasRequiredConsents,
@@ -13,6 +14,8 @@ import { isAgeAllowed } from "@/lib/age";
 import type { ConsentType } from "@/types/db";
 
 export async function submitConsent(formData: FormData): Promise<void> {
+  // Cookie-bound client: used ONLY to verify the authenticated session identity.
+  // All writes use serviceSb (service-role) to enforce server-authoritativeness.
   const supabase = await createServerSupabase();
   const {
     data: { user },
@@ -40,10 +43,15 @@ export async function submitConsent(formData: FormData): Promise<void> {
   const ip =
     hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? hdrs.get("x-real-ip") ?? null;
 
-  await recordConsents(supabase, { userId: user.id, types: agreed, ip });
+  // Service-role client for all writes: bypasses RLS, scoped to the verified user.id only.
+  // user.id comes from the session (server-verified), never from the request body.
+  const serviceSb = createServiceSupabase();
+
+  await recordConsents(serviceSb, { userId: user.id, types: agreed, ip });
 
   // Age verified (>= 14): persist the flag the Phase 2 generate route gates on.
-  const { error: ageErr } = await supabase
+  // Written via service_role — clients no longer have UPDATE (age_verified) privilege.
+  const { error: ageErr } = await serviceSb
     .from("profiles")
     .update({ age_verified: true })
     .eq("id", user.id);
