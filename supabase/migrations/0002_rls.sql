@@ -1,5 +1,5 @@
 -- ProfAI Phase 1: RLS — every user-scoped row is own-row only (user_id = auth.uid()).
--- Grant table-level privileges to authenticated/anon roles (RLS is a secondary layer).
+-- Grant table-level privileges to authenticated role (RLS is a secondary layer). Anon receives no grants.
 
 -- profiles: select + update (no insert/delete — trigger + service-role only)
 grant select, update on public.profiles to authenticated;
@@ -7,7 +7,7 @@ grant select, update on public.profiles to authenticated;
 grant select, insert on public.consents to authenticated;
 -- credit_ledger: read-only to clients (writes via SECURITY DEFINER RPC / service-role).
 -- INSERT is granted so RLS (not the privilege layer) is the gate — proves the "no insert policy" test.
-grant select, insert on public.credit_ledger to authenticated;
+grant select on public.credit_ledger to authenticated;
 -- orders: read-only to clients (writes via service-role in payapp routes)
 grant select on public.orders to authenticated;
 -- generation_jobs: read-only to clients (writes via server with service-role)

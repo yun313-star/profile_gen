@@ -37,8 +37,8 @@ select throws_ok(
   $$ insert into public.credit_ledger (user_id, delta, reason)
      values ('00000000-0000-0000-0000-00000000000a', 999, 'purchase') $$,
   '42501',
-  'new row violates row-level security policy for table "credit_ledger"',
-  'ledger: direct client insert is denied by RLS'
+  'permission denied for table credit_ledger',
+  'ledger: direct client insert is denied by privilege layer'
 );
 
 -- A cannot select B's order.
