@@ -35,5 +35,8 @@ export default defineConfig({
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    // E2E runs the dev server with the model layer stubbed so no paid provider
+    // is ever called. Merge with process.env so PATH / .env.local vars survive.
+    env: { ...process.env, E2E_STUB_MODEL: "1" } as Record<string, string>,
   },
 });
