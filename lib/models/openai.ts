@@ -12,12 +12,13 @@ export async function openaiEdit(input: GenInput): Promise<GenOutput> {
     selfies.map((b, i) => toFile(b, `s${i}.png`, { type: "image/png" })),
   );
 
-  const result = await (client.images.edit as (p: unknown) => Promise<{ data: Array<{ b64_json?: string }> }>)({
+  const result = await client.images.edit({
     model: preset.model_key,
     image,
     prompt: preset.prompt_template,
-    size: preset.size,
-    quality: preset.quality,
+    size: preset.size as "1024x1536",
+    quality: preset.quality as "high",
+    // @ts-expect-error moderation is supported at runtime but not yet in the openai SDK v6 types
     moderation: "auto",
     n: 1,
   });
