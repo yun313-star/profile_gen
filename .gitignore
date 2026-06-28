@@ -42,6 +42,9 @@ Thumbs.db
 # Superpowers SDD scratch
 .superpowers/
 
+# Watermark font-glyph generation scratch (fonts + throwaway gen scripts)
+.tmpfont/
+
 # Test artifacts
 /test-results
 /playwright-report
