@@ -48,3 +48,21 @@ export async function payappCreate(args: {
   if (!payurl || !mul_no) throw new Error("PayApp create: missing payurl/mul_no");
   return { payurl, mul_no };
 }
+
+export async function payappCancel(args: {
+  mul_no: string;
+  reason: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  const body = new URLSearchParams({
+    cmd: "paycancel",
+    userid: requireEnv("PAYAPP_USERID"),
+    linkkey: requireEnv("PAYAPP_LINKKEY"),
+    mul_no: args.mul_no,
+    memo: args.reason,
+  });
+  const p = await postForm(body);
+  if (p.get("state") !== "1") {
+    return { ok: false, error: p.get("errorMessage") || `paycancel failed (errno=${p.get("errno") ?? "?"})` };
+  }
+  return { ok: true };
+}
