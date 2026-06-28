@@ -52,3 +52,4 @@ supabase/.temp
 
 # TypeScript build cache
 tsconfig.tsbuildinfo
+.claude/settings.local.json
