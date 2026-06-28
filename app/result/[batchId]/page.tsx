@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 import { useJobStream, type JobStreamState } from "@/lib/useJobStream";
 import { BUCKET_OUTPUTS } from "@/lib/storage";
+import { JobErrorCard } from "@/components/JobErrorCard";
 import type { GenerationJob } from "@/types/db";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -76,15 +77,15 @@ export default function ResultPage() {
       <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
         {entries.map(([id, s]) => (
           <div key={id} className="rounded-lg border p-2">
-            {s.status === "done" && urls[id] ? (
+            {s.status === "failed" ? (
+              <JobErrorCard errorCode={s.errorCode} />
+            ) : s.status === "done" && urls[id] ? (
               <a href={urls[id]} download={`profai-${id}.png`}>
                 <img src={urls[id]} alt="결과" className="w-full rounded" />
               </a>
             ) : (
               <div className="flex aspect-[4/5] items-center justify-center text-sm text-gray-500">
-                {s.status === "failed"
-                  ? "생성 실패 (크레딧이 환불되었습니다)"
-                  : STATUS_LABEL[s.status] ?? s.status}
+                {STATUS_LABEL[s.status] ?? s.status}
               </div>
             )}
           </div>
