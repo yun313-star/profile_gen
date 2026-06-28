@@ -35,15 +35,22 @@ export async function POST(req: Request): Promise<Response> {
     const jobId: string = message.job_id;
     const selfiePaths: string[] = message.selfie_paths ?? [];
 
-    const job = await getJob(svc, jobId);
-
-    // Idempotency: only a queued job may trigger a paid model call.
-    if (!job || job.status !== "queued") {
-      await queueDelete(svc, msgId);
+    let job: Awaited<ReturnType<typeof getJob>> = null;
+    try {
+      job = await getJob(svc, jobId);
+      // Idempotency: only a queued job may trigger a paid model call.
+      if (!job || job.status !== "queued") {
+        await queueDelete(svc, msgId);
+        continue;
+      }
+      await setJobStatus(svc, jobId, "processing");
+    } catch (e) {
+      // Transient pre-process DB error: do NOT ack (let pgmq redeliver) and do
+      // NOT abort the drain — continue to the next message.
+      console.error("worker: pre-process error for job", jobId, e);
       continue;
     }
-
-    await setJobStatus(svc, jobId, "processing");
+    if (!job) continue; // type-narrow; the guard above already handled null/non-queued
 
     let amount = 1;
     try {
@@ -112,12 +119,12 @@ export async function POST(req: Request): Promise<Response> {
       // Best-effort: a purge failure must NOT flip the already-done job to failed
       // (the Phase 4 expire cron backstops orphaned selfies).
       try {
-        const { count } = await svc
+        const { count, error: countErr } = await svc
           .from("generation_jobs")
           .select("id", { count: "exact", head: true })
           .eq("batch_id", job.batch_id)
           .in("status", ["queued", "processing"]);
-        if ((count ?? 0) === 0 && selfiePaths.length > 0) {
+        if (!countErr && (count ?? 0) === 0 && selfiePaths.length > 0) {
           await removeObjects(svc, BUCKET_SELFIES, selfiePaths);
           await svc
             .from("assets")

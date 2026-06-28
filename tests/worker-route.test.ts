@@ -158,4 +158,27 @@ describe("POST /api/jobs/worker", () => {
     await POST(req());
     expect(removeObjects).not.toHaveBeenCalled();
   });
+
+  it("ERROR CODES: a generic generateImage error → generation_failed, refunds + failed", async () => {
+    queueRead.mockResolvedValue([{ msgId: 9, message: { job_id: "jg", selfie_paths: ["p"] } }]);
+    getJob.mockResolvedValue({ id: "jg", user_id: "u", status: "queued", style_preset_id: "p1", is_watermarked: false, batch_id: "b1" });
+    generateImage.mockRejectedValue(new Error("boom"));
+
+    await POST(req());
+    expect(refundHold).toHaveBeenCalledWith(svc, { user_id: "u", amount: 1, job_id: "jg" });
+    expect(setJobStatus).toHaveBeenCalledWith(svc, "jg", "failed", expect.objectContaining({ error_code: "generation_failed" }));
+  });
+
+  it("PURGE best-effort: a purge failure does NOT flip the done job to failed", async () => {
+    queueRead.mockResolvedValue([{ msgId: 10, message: { job_id: "jpb", selfie_paths: ["u/b1/0.png"] } }]);
+    getJob.mockResolvedValue({ id: "jpb", user_id: "u", status: "queued", style_preset_id: "p1", is_watermarked: false, batch_id: "b1" });
+    remainingJobs.mockResolvedValue({ count: 0, error: null });
+    removeObjects.mockRejectedValue(new Error("storage down"));
+
+    const res = await POST(req());
+    expect(res.status).toBe(200);
+    expect(setJobStatus).toHaveBeenCalledWith(svc, "jpb", "done", expect.objectContaining({ asset_id: "asset-1" }));
+    expect(setJobStatus).not.toHaveBeenCalledWith(svc, "jpb", "failed", expect.anything());
+    expect(refundHold).not.toHaveBeenCalled();
+  });
 });
