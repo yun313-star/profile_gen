@@ -1,15 +1,15 @@
 import { createServiceSupabase } from "@/lib/supabase/service";
 import { setJobStatus } from "@/lib/db";
 import { refundHold } from "@/lib/credits";
+import { requireCron } from "@/lib/cron";
 
 export const runtime = "nodejs";
 
 const STUCK_MINUTES = 10;
 
 export async function GET(req: Request): Promise<Response> {
-  if (req.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) {
-    return new Response("unauthorized", { status: 401 });
-  }
+  const denied = requireCron(req);
+  if (denied) return denied;
 
   const svc = createServiceSupabase();
   const cutoff = new Date(Date.now() - STUCK_MINUTES * 60 * 1000).toISOString();

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServiceSupabase } from "@/lib/supabase/service";
+import { requireCron } from "@/lib/cron";
 
 export const runtime = "nodejs";
 
@@ -8,10 +9,8 @@ export const runtime = "nodejs";
 const STALE_MINUTES = 30;
 
 export async function GET(req: Request) {
-  const auth = req.headers.get("authorization");
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
+  const denied = requireCron(req);
+  if (denied) return denied;
 
   const sb = createServiceSupabase();
   const cutoff = new Date(Date.now() - STALE_MINUTES * 60_000).toISOString();

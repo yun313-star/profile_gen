@@ -7,6 +7,7 @@ import { createSignedUrl, uploadObject, removeObjects, BUCKET_SELFIES, BUCKET_OU
 import { generateImage } from "@/lib/models/router";
 import { ModerationBlockedError } from "@/lib/models/types";
 import { applyWatermark } from "@/lib/watermark";
+import { requireCron } from "@/lib/cron";
 import type { StylePreset } from "@/types/db";
 
 export const runtime = "nodejs";
@@ -23,9 +24,8 @@ async function loadPreset(svc: any, id: string): Promise<StylePreset | null> {
 }
 
 export async function POST(req: Request): Promise<Response> {
-  if (req.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) {
-    return new Response("unauthorized", { status: 401 });
-  }
+  const denied = requireCron(req);
+  if (denied) return denied;
 
   const svc = createServiceSupabase();
   const messages = await queueRead(svc, BATCH, VISIBILITY);
