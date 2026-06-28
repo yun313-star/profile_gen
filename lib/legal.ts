@@ -1,11 +1,13 @@
 export const BUSINESS_INFO = {
   serviceName: "ProfAI",
-  company: "★사업자명 입력",
-  ceo: "★대표자명 입력",
-  bizRegNo: "★사업자등록번호 입력",
+  company: "차밍",
+  ceo: "허윤",
+  bizRegNo: "499-40-00623",
+  // ★ still required: not on the 사업자등록증 — fill from the 통신판매업 신고증.
   mailOrderNo: "★통신판매업신고번호 입력",
-  address: "★사업장 주소 입력",
+  address: "서울특별시 강남구 논현로 661, 1303호",
   email: "support@profai.kr",
+  // ★ still required: customer-service phone (not on the 사업자등록증).
   phone: "★대표 전화번호 입력",
 } as const;
 
