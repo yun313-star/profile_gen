@@ -18,6 +18,7 @@
     "jsx": "react-jsx",
     "incremental": true,
     "verbatimModuleSyntax": true,
+    "types": ["vitest/globals"],
     "plugins": [
       {
         "name": "next"
