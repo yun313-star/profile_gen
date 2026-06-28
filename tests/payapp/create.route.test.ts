@@ -8,6 +8,8 @@ const payappCreate = vi.fn();
 vi.mock("@/lib/supabase/server", () => ({
   createServerSupabase: vi.fn(async () => ({ auth: { getUser } })),
 }));
+// Order writes go through the service client (RLS makes `orders` service-write-only).
+vi.mock("@/lib/supabase/service", () => ({ createServiceSupabase: () => ({ _tag: "svc" }) }));
 vi.mock("@/lib/db", () => ({ insertOrder, updateOrder }));
 vi.mock("@/lib/payapp/client", () => ({ payappCreate }));
 

@@ -17,13 +17,14 @@ async function requireUserId() {
 }
 
 export async function setMarketingConsent(agreed: boolean): Promise<void> {
-  const { sb, userId } = await requireUserId();
+  const { userId } = await requireUserId();
   const hdrs = await headers();
   const ip = hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
-  // All consent writes (incl. marketing grant/withdraw) are versioned with the
-  // single dated CONSENT_VERSION; withdrawal is recorded by suffixing the same
-  // base version (the consents table is an append-only log with no `granted` column).
-  const { error } = await sb.from("consents").insert({
+  // Consent writes go through the SERVICE client: 0005 revoked client INSERT on
+  // `consents` (server-authoritative). userId is the session-verified identity.
+  // All consent writes are versioned with the single dated CONSENT_VERSION;
+  // withdrawal is recorded by suffixing the same base version (append-only log).
+  const { error } = await createServiceSupabase().from("consents").insert({
     user_id: userId,
     type: "marketing",
     version: agreed ? CONSENT_VERSION : `${CONSENT_VERSION}-withdrawn`,

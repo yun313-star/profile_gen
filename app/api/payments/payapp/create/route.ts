@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
+import { createServiceSupabase } from "@/lib/supabase/service";
 import { insertOrder, updateOrder } from "@/lib/db";
 import { payappCreate } from "@/lib/payapp/client";
 import { CREDIT_PACKS } from "@/lib/styles";
@@ -23,8 +24,12 @@ export async function POST(req: Request) {
   }
   const pack = CREDIT_PACKS[packId];
 
+  // Order writes use the SERVICE client: RLS grants `authenticated` only SELECT on
+  // `orders` (writes are service-role only — see 0002_rls.sql). user.id is the
+  // session-verified identity, never a client-supplied value.
+  const svc = createServiceSupabase();
   // expected_amount is set server-side from CREDIT_PACKS — never trust client.
-  const order = await insertOrder(sb, {
+  const order = await insertOrder(svc, {
     user_id: user.id,
     pack_id: pack.id,
     expected_amount: pack.price,
@@ -41,7 +46,7 @@ export async function POST(req: Request) {
       feedbackUrl: `${base}/api/payments/payapp/feedback`,
       returnUrl: `${base}/credits/result?order=${order.id}`,
     });
-    await updateOrder(sb, order.id, { payapp_mul_no: mul_no });
+    await updateOrder(svc, order.id, { payapp_mul_no: mul_no });
     // E2E-only: expose the order id so the test can simulate the PayApp feedback.
     // Guarded by E2E=1 so production never leaks the order id in the response.
     const payload: { payurl: string; order_id?: string } = { payurl };

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 import { BUCKET_OUTPUTS } from "@/lib/storage";
+import { AiLabel } from "@/components/AiLabel";
 import type { Asset } from "@/types/db";
 
 type Tile = { id: string; url: string; watermarked: boolean };
@@ -49,12 +50,14 @@ export default function GalleryPage() {
               key={t.id}
               href={t.url}
               download={`profai-${t.id}.png`}
-              className="block overflow-hidden rounded-lg border"
+              className="relative block overflow-hidden rounded-lg border"
             >
               <img src={t.url} alt="생성 이미지" className="w-full" />
+              {/* 인공지능기본법: 모든 생성 결과(유료·무료)에 가시 'AI 생성' 라벨 */}
+              <AiLabel className="absolute bottom-1 left-1" />
               {t.watermarked && (
-                <span className="block bg-black/60 px-2 py-1 text-center text-xs text-white">
-                  AI 생성 · 워터마크
+                <span className="absolute right-1 bottom-1 rounded bg-black/60 px-2 py-0.5 text-xs text-white">
+                  워터마크
                 </span>
               )}
             </a>

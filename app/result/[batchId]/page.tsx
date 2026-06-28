@@ -6,6 +6,7 @@ import { createBrowserSupabase } from "@/lib/supabase/browser";
 import { useJobStream, type JobStreamState } from "@/lib/useJobStream";
 import { BUCKET_OUTPUTS } from "@/lib/storage";
 import { JobErrorCard } from "@/components/JobErrorCard";
+import { AiLabel } from "@/components/AiLabel";
 import type { GenerationJob } from "@/types/db";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -80,8 +81,10 @@ export default function ResultPage() {
             {s.status === "failed" ? (
               <JobErrorCard errorCode={s.errorCode} />
             ) : s.status === "done" && urls[id] ? (
-              <a href={urls[id]} download={`profai-${id}.png`}>
+              <a href={urls[id]} download={`profai-${id}.png`} className="relative block">
                 <img src={urls[id]} alt="결과" className="w-full rounded" />
+                {/* 인공지능기본법: 모든 생성 결과에 가시 'AI 생성' 라벨 */}
+                <AiLabel className="absolute bottom-1 left-1" />
               </a>
             ) : (
               <div className="flex aspect-[4/5] items-center justify-center text-sm text-gray-500">
