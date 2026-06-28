@@ -50,3 +50,39 @@ export async function deleteUserData(sb: SupabaseClient, userId: string): Promis
   const { error: authErr } = await sb.auth.admin.deleteUser(userId);
   if (authErr) throw authErr;
 }
+
+/**
+ * PIPA selfie purge: deletes source_selfie assets whose delete_after has passed,
+ * from Storage (BUCKET_SELFIES) and DB. This is the BACKSTOP for orphans — the
+ * Phase 2 worker already purges a batch's selfies immediately once its last job
+ * leaves (queued, processing). MUST be called with a service-role client. Server-only.
+ */
+export async function purgeExpiredSelfies(
+  sb: SupabaseClient,
+  now: Date = new Date(),
+): Promise<{ purged: number }> {
+  const iso = now.toISOString();
+  const { data: rows, error } = await sb
+    .from("assets")
+    .select("id, storage_path")
+    .eq("kind", "source_selfie")
+    .not("delete_after", "is", null)
+    .lte("delete_after", iso);
+  if (error) throw error;
+
+  const list = (rows ?? []) as { id: string; storage_path: string | null }[];
+  if (list.length === 0) return { purged: 0 };
+
+  const paths = list.map((r) => r.storage_path).filter((p): p is string => !!p);
+  if (paths.length > 0) {
+    // source_selfie objects live in the selfies bucket
+    const { error: rmErr } = await sb.storage.from(BUCKET_SELFIES).remove(paths);
+    if (rmErr) throw rmErr;
+  }
+
+  const ids = list.map((r) => r.id);
+  const { error: delErr } = await sb.from("assets").delete().in("id", ids);
+  if (delErr) throw delErr;
+
+  return { purged: list.length };
+}
