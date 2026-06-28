@@ -45,6 +45,11 @@ describe("verifyFeedback", () => {
     expect(verifyFeedback(feedback({ userid: "attacker" })).authed).toBe(false);
   });
 
+  it("authed=false when linkkey is wrong", async () => {
+    const { verifyFeedback } = await import("@/lib/payapp/verify");
+    expect(verifyFeedback(feedback({ linkkey: "WRONG" })).authed).toBe(false);
+  });
+
   it("price is null for non-numeric price; other states pass through", async () => {
     const { verifyFeedback } = await import("@/lib/payapp/verify");
     const r = verifyFeedback(feedback({ price: "", pay_state: "10" }));
