@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 import { validateSelfieFile, resizeSelfie, MAX_SELFIE_COUNT } from "@/lib/image-client";
 import { STYLE_FAMILIES } from "@/lib/styles";
+import { UploadConsentNotice } from "@/components/UploadConsentNotice";
 import type { StylePreset } from "@/types/db";
 
 const FAMILY_LABEL: Record<string, string> = {
@@ -92,6 +93,7 @@ export function Studio() {
 
       <section className="mt-6">
         <label className="block text-sm font-medium">셀카 업로드 (최대 {MAX_SELFIE_COUNT}장)</label>
+        <UploadConsentNotice />
         <input
           type="file"
           accept="image/jpeg,image/png,image/webp"
