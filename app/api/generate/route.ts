@@ -68,12 +68,21 @@ export async function POST(req: Request): Promise<Response> {
   const batchId = crypto.randomUUID();
   const isWatermarked = preset.family === "free";
 
-  // 6) upload selfies → private bucket
+  // 6) upload selfies → private bucket + record source_selfie asset rows (PIPA purge tracking)
+  const deleteAfter = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
   const selfiePaths: string[] = [];
   for (let i = 0; i < files.length; i++) {
     const path = `${user.id}/${batchId}/${i}.png`;
     const bytes = new Uint8Array(await files[i].arrayBuffer());
     await uploadObject(svc, BUCKET_SELFIES, path, bytes, files[i].type || "image/png");
+    await svc.from("assets").insert({
+      job_id: null,
+      user_id: user.id,
+      storage_path: path,
+      kind: "source_selfie",
+      mime: files[i].type || "image/png",
+      delete_after: deleteAfter,
+    });
     selfiePaths.push(path);
   }
 

@@ -26,7 +26,11 @@ vi.mock("@/lib/supabase/server", () => ({
   }),
 }));
 
-const svc = { _tag: "svc" };
+const svcInsert = vi.fn().mockResolvedValue({ error: null });
+const svc = {
+  _tag: "svc",
+  from: vi.fn((_table: string) => ({ insert: svcInsert })),
+};
 vi.mock("@/lib/supabase/service", () => ({ createServiceSupabase: () => svc }));
 
 const debitCredits = vi.fn();
@@ -115,6 +119,18 @@ describe("POST /api/generate", () => {
       "http://t/api/jobs/worker",
       expect.objectContaining({ method: "POST" }),
     );
+    // source_selfie asset rows — 1 selfie in buildReq(3) default
+    expect(svc.from).toHaveBeenCalledWith("assets");
+    const selfieInsertCalls = svcInsert.mock.calls.filter(
+      (call: any[]) => call[0]?.kind === "source_selfie",
+    );
+    expect(selfieInsertCalls).toHaveLength(1);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((selfieInsertCalls[0] as any[])[0]).toMatchObject({
+      user_id: USER.id,
+      kind: "source_selfie",
+      mime: "image/png",
+    });
   });
 
   it("returns 401 when unauthenticated", async () => {
