@@ -1,0 +1,86 @@
+import { test, expect, type Page, type BrowserContext } from "@playwright/test";
+import { createTestUserSession } from "./session-helper";
+
+/**
+ * Encode a Supabase session as the @supabase/ssr cookie value.
+ * Format: "base64-<base64url_encoded_session_json>"
+ * Chunked at MAX_CHUNK_SIZE=3180 if the value exceeds that limit.
+ */
+function encodeSessionCookies(
+  cookieName: string,
+  session: object,
+): Array<{ name: string; value: string }> {
+  const json = JSON.stringify(session);
+  const encoded = "base64-" + Buffer.from(json).toString("base64url");
+  const MAX = 3180;
+  if (encoded.length <= MAX) {
+    return [{ name: cookieName, value: encoded }];
+  }
+  // Chunk if needed (rare for local Supabase sessions, but handled for safety).
+  const chunks: Array<{ name: string; value: string }> = [];
+  for (let i = 0; i * MAX < encoded.length; i++) {
+    chunks.push({ name: `${cookieName}.${i}`, value: encoded.slice(i * MAX, (i + 1) * MAX) });
+  }
+  return chunks;
+}
+
+/** Inject a Supabase session directly as browser cookies (no server round-trip). */
+async function authenticate(context: BrowserContext, email: string) {
+  const { session } = await createTestUserSession(email);
+
+  // Derive the cookie name from the local Supabase URL.
+  const projectRef = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!).hostname.split(".")[0];
+  const cookieName = `sb-${projectRef}-auth-token`;
+
+  const cookiePairs = encodeSessionCookies(cookieName, session);
+  await context.addCookies(
+    cookiePairs.map(({ name, value }) => ({
+      name,
+      value,
+      domain: "localhost",
+      path: "/",
+      httpOnly: false,
+      secure: false,
+      sameSite: "Lax" as const,
+    })),
+  );
+}
+
+test("landing shows the free-credit hook", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByText(/무료 3크레딧/)).toBeVisible();
+  await expect(page.getByRole("link", { name: "무료로 시작하기" })).toBeVisible();
+});
+
+test("unauthenticated /create redirects to /login", async ({ page }) => {
+  await page.goto("/create");
+  await expect(page).toHaveURL(/\/login/);
+});
+
+test("authenticated-but-unconsented user is gated, then reaches /create after consent", async ({
+  page,
+  context,
+}) => {
+  await authenticate(context, `e2e+${Date.now()}@test.dev`);
+
+  // Authenticated user hitting /create → gated to consent onboarding.
+  await page.goto("/create");
+  await expect(page).toHaveURL(/\/onboarding\/consent/);
+
+  // consent-form.tsx: submit disabled until birthdate + all required checkboxes
+  const submit = page.getByRole("button", { name: "동의하고 시작하기" });
+  await expect(submit).toBeDisabled();
+
+  // consent-form.tsx: <input type="date" name="birthdate" />
+  await page.locator('input[name="birthdate"]').fill("2000-01-01");
+
+  await page.getByText("전체 동의").click();
+  await expect(submit).toBeEnabled();
+
+  await submit.click();
+
+  await expect(page).toHaveURL(/\/create/);
+  await expect(page.getByRole("heading", { name: "스튜디오" })).toBeVisible();
+
+  await expect(page.getByLabel("보유 크레딧")).toContainText("3");
+});
