@@ -42,7 +42,11 @@ export async function POST(req: Request) {
       returnUrl: `${base}/credits/result?order=${order.id}`,
     });
     await updateOrder(sb, order.id, { payapp_mul_no: mul_no });
-    return NextResponse.json({ payurl });
+    // E2E-only: expose the order id so the test can simulate the PayApp feedback.
+    // Guarded by E2E=1 so production never leaks the order id in the response.
+    const payload: { payurl: string; order_id?: string } = { payurl };
+    if (process.env.E2E === "1") payload.order_id = order.id;
+    return NextResponse.json(payload);
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "결제 생성에 실패했습니다." },

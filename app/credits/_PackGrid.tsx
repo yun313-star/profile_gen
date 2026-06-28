@@ -26,11 +26,14 @@ export function PackGrid({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ pack_id: packId }),
       });
-      const data = (await res.json()) as { payurl?: string; error?: string };
+      const data = (await res.json()) as { payurl?: string; order_id?: string; error?: string };
       if (!res.ok || !data.payurl) {
         setError(data.error ?? "결제 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.");
         return;
       }
+      // E2E-only: the create route returns order_id when E2E=1 so the test can
+      // simulate the PayApp feedback. No-op in production (order_id undefined).
+      if (data.order_id) window.localStorage.setItem("e2e_last_order", data.order_id);
       if (isMobile) {
         redirect(data.payurl);
       } else {
